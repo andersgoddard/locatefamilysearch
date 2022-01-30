@@ -6,12 +6,18 @@ from bs4 import BeautifulSoup
 
 def get_results(address, postcode):
     dataframe = get_database_for(postcode)
-    results = get_most_relevant_results(dataframe, address)
+    results = dataframe
+    if len(dataframe) > 0:
+        results = get_most_relevant_results(dataframe, address)
+        results = results.drop('Similarity', axis=1)
     return results
     
 def get_database_for(postcode):
     df_list = get_dataframe_list(postcode) 
-    return pd.concat(df_list)    
+    if len(df_list) > 0:
+        return pd.concat(df_list)
+    else:
+        return pd.DataFrame()   
 
 def get_dataframe_list(postcode):
     index = 0

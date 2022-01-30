@@ -14,3 +14,6 @@ The final element is to have a web page that serves up a form and displays the r
 
 Lastly, the web app will scrape the locatefamily website in real-time, which means it will take a while to return results. 
 This would be easy to rectify by scraping the whole website once and storing a dataframe locally. The dataframe variable in get_results() could use pd.read_csv().
+
+Final note: Unsurprisingly, having interacted with the search bar in the web browser, the time you wait for results is ridiculous! 
+I also can't work out why but the word "Address" just pops up in my HTML above the results table - very unusual. 
