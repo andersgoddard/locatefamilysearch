@@ -1,7 +1,7 @@
-The LocateFamily website is one where a person can search their surname and try to find the phone numbers of family members
-It is essentially a telephone directory but it is not possible to search by address, hence this little project
+The LocateFamily website is one where a person can search their surname and try to find the phone numbers of family members. 
+It is essentially a telephone directory but it is not possible to search by address, hence this little project. 
 
-I approached this with a completely test-driven mindset, with only a basic high-level idea of what I wanted as an end result 
+I approached this with a completely test-driven mindset, with only a basic high-level idea of what I wanted as an end result. 
 The test suite and code has been refactored to make for easier reading but, in effect, the steps to final solution were:
 
 1. Navigate the pages for a particular postcode and return the correct number of pages with results (this originally used a method that kept a count but I refactored it)
