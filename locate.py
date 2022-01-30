@@ -3,16 +3,16 @@ import pandas as pd
 import numpy as np
 import textdistance
 from bs4 import BeautifulSoup
-from pathlib import Path 
 
-def get_web_response(postcode, index):
-    url ='https://www.locatefamily.com/Street-Lists/UK/' + postcode + '/index' + str(index) + '.html'
-    response = requests.get(url)
-    return response
-
-def get_number_of_pages(postcode):
-    return len(get_dataframe_list(postcode))
+def get_results(address, postcode):
+    dataframe = get_database_for(postcode)
+    results = get_most_relevant_results(dataframe, address)
+    return results
     
+def get_database_for(postcode):
+    df_list = get_dataframe_list(postcode) 
+    return pd.concat(df_list)    
+
 def get_dataframe_list(postcode):
     index = 0
     df_list = list()
@@ -27,38 +27,25 @@ def get_dataframe_list(postcode):
             df_list.append(get_dataframe(page.text))
             
     return df_list
-    
-def get_number_of_addresses(text):
-    count = 0
-    address_tag = '<span itemprop="streetAddress">'
-    
-    while address_tag in text:
-        tag_index = text.find(address_tag)
-        text = text[tag_index+len(address_tag):]
-        count += 1
-    
-    return count
 
-def parse_text(text):
-    soup = BeautifulSoup(text, 'html.parser')
-    return soup
+def get_web_response(postcode, index):
+    url ='https://www.locatefamily.com/Street-Lists/UK/' + postcode + '/index' + str(index) + '.html'
+    response = requests.get(url)
+    return response
+
+def get_dataframe(text):
+    data = get_database_rows(text)
+    df = pd.DataFrame(data, columns=['Name', 'Address', 'Phone', 'Similarity'])
+    return df
     
-def get_address_list(text):
-    html = parse_text(text)
-    addresses = html.find_all("span", itemprop="streetAddress")
-    cleaned_addresses = clean_addresses(addresses)
-    return cleaned_addresses
-    
-def clean_addresses(addresses):
-    cleaned_addresses = list()
-    for address in addresses: 
-        cleaned_addresses.append(clean_string(address.string))
-    return cleaned_addresses
-    
-def clean_string(string):
-    cleaned_string = string.replace('\xa0', '')
-    return cleaned_string
-    
+def get_database_rows(text):
+    names = get_name_list(text)
+    addresses = get_address_list(text)
+    phone_numbers = get_phone_numbers(text)
+    similarities = [0] * len(names)
+    database_rows = zip(names, addresses, phone_numbers, similarities)
+    return list(database_rows)
+
 def get_name_list(text):
     html = parse_text(text)
     given_names = html.find_all("span", itemprop="givenName")
@@ -71,6 +58,32 @@ def get_name_list(text):
         full_names.append(given_name + " " + family_name)
     return full_names
 
+def parse_text(text):
+    soup = BeautifulSoup(text, 'html.parser')
+    return soup
+        
+def clean_string(string):
+    cleaned_string = string.replace('\xa0', '')
+    return cleaned_string
+
+def get_address_list(text):
+    html = parse_text(text)
+    addresses = html.find_all("span", itemprop="streetAddress")
+    cleaned_addresses = clean_addresses(addresses)
+    return cleaned_addresses
+
+def clean_addresses(addresses):
+    cleaned_addresses = list()
+    for address in addresses: 
+        cleaned_addresses.append(clean_string(address.string))
+    return cleaned_addresses
+
+def get_phone_numbers(text):
+    html = parse_text(text)
+    phone_numbers = html.find_all("span", itemprop="telephone")
+    cleaned_phone_numbers = clean_phone_numbers(phone_numbers)
+    return cleaned_phone_numbers
+
 def clean_phone_numbers(numbers):
     cleaned_phone_numbers = list()
     for number in numbers:
@@ -79,39 +92,7 @@ def clean_phone_numbers(numbers):
         else:              
             cleaned_phone_numbers.append(clean_string(number.string))
     return cleaned_phone_numbers
-    
-def get_phone_numbers(text):
-    html = parse_text(text)
-    phone_numbers = html.find_all("span", itemprop="telephone")
-    cleaned_phone_numbers = clean_phone_numbers(phone_numbers)
-    return cleaned_phone_numbers
-    
-def get_database_rows(text):
-    names = get_name_list(text)
-    addresses = get_address_list(text)
-    phone_numbers = get_phone_numbers(text)
-    similarities = [0] * len(names)
-    database_rows = zip(names, addresses, phone_numbers, similarities)
-    return list(database_rows)
-    
-def get_dataframe(text):
-    data = get_database_rows(text)
-    df = pd.DataFrame(data, columns=['Name', 'Address', 'Phone', 'Similarity'])
-    return df
-    
-def get_similarity(word1, word2):
-    return textdistance.ratcliff_obershelp(word1, word2)
-            
-def get_database_for(postcode):
-    df_list = get_dataframe_list(postcode) 
-    return pd.concat(df_list)    
-    
-def get_similar_addresses(dataframe, address):
-    dataframe = dataframe.replace(np.nan, '', regex=True)
-    dataframe['Similarity'] = dataframe.apply(lambda row: get_similarity(row[1], address), axis=1)
-    dataframe = dataframe.sort_values(by=['Similarity'], ascending=False)
-    return dataframe
-    
+
 def get_most_relevant_results(dataframe, address):
     all_results = get_similar_addresses(dataframe, address)
     most_relevant_results = all_results[all_results['Similarity']==1.0]    
@@ -125,8 +106,12 @@ def get_most_relevant_results(dataframe, address):
         most_relevant_results = most_relevant_results.head(10)
     
     return most_relevant_results
-    
-def get_results(address, postcode):
-    dataframe = get_database_for(postcode)
-    results = get_most_relevant_results(dataframe, address)
-    return results
+
+def get_similar_addresses(dataframe, address):
+    dataframe = dataframe.replace(np.nan, '', regex=True)
+    dataframe['Similarity'] = dataframe.apply(lambda row: get_similarity(row[1], address), axis=1)
+    dataframe = dataframe.sort_values(by=['Similarity'], ascending=False)
+    return dataframe
+
+def get_similarity(word1, word2):
+    return textdistance.ratcliff_obershelp(word1, word2)

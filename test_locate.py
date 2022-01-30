@@ -5,9 +5,15 @@ from locate import *
 # The first two tests scrape 73 web pages, so they take circa 10-15 seconds to run
 # I have saved a local CSV file with the data for further testing
 
-# def test_web_scrape():
-    # pages = get_number_of_pages('W2')
-    # assert pages == 73
+def test_web_scrape():
+    items_per_full_page = 80
+    df = get_database_for('W2')
+    pages = len(df)//items_per_full_page
+    
+    if len(df)%items_per_full_page > 0:
+        pages += 1
+    
+    assert pages == 73
     
 # def test_get_full_database():
     # df = get_database_for('W2')
@@ -40,10 +46,6 @@ def data():
 def data_cache():
     data_cache = pd.read_csv('out.csv')
     return data_cache
-
-def test_get_number_of_addresses(data):
-    address_num = get_number_of_addresses(data)
-    assert address_num == 80
     
 def test_get_list_of_addresses(data):
     address_list = get_address_list(data)
